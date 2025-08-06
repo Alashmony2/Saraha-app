@@ -46,3 +46,50 @@ export const register = async (req, res, next) => {
       .json({ message: error.message, success: false });
   }
 };
+
+
+export const login = async (req, res, next) => {
+  try {
+    //get data from request body
+    const { email, phoneNumber, password } = req.body;
+    //check user existence
+    const userExist = await User.findOne({
+      $or: [
+        {
+          $and: [
+            { email: { $exists: true } },
+            { email: { $ne: null } },
+            { email },
+          ],
+        },
+        {
+          $and: [
+            { phoneNumber: { $exists: true } },
+            { phoneNumber: { $ne: null } },
+            { phoneNumber },
+          ],
+        },
+      ],
+    });
+    if (!userExist) {
+      throw new Error("Invalid Credentials", { cause: 401 });
+    }
+    //check password
+    const isMatch = bcrypt.compareSync(password, userExist.password);
+    if (!isMatch) {
+      throw new Error("Invalid Credentials", { cause: 401 });
+    }
+    
+    //send response
+    return res.status(200).json({
+      message: "Login Successfully",
+      success: true,
+      data:{userExist}
+    })
+  } catch (error) {
+    return res
+      .status(error.cause || 500)
+      .json({ message: error.message, success: false });
+
+  }
+};

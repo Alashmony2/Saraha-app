@@ -43,7 +43,7 @@ const schema =new Schema({
     dob:{
         type:Date
     }
-},{timestamps:true});
+},{timestamps:true,toObject:{virtuals:true},toJSON:{virtuals:true}});
 
 schema.virtual("fullName").get(function() {
     return `${this.firstName} ${this.lastName}`;
@@ -56,7 +56,7 @@ schema.virtual("fullName").set(function(value){
 });
 
 schema.virtual("age").get(function(){
-    return new Date().getFullYear - new Date(this.dob).getFullYear();
+    return new Date().getFullYear() - new Date(this.dob).getFullYear();
 })
 
 export const User = model("User",schema);
