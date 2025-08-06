@@ -15,15 +15,15 @@ const schema =new Schema({
     },
     email:{
         type:String,
-        required:true,
-        trim:true,
-        lowercase:true,
-        unique:function(){
+        required:function(){
             if(this.phoneNumber){
                 return false;
             }
             return true;
         },
+        trim:true,
+        lowercase:true,
+        // unique:true
     },
     password:{
         type:String,
@@ -31,14 +31,14 @@ const schema =new Schema({
     },
     phoneNumber:{
         type:String,
-        required:true,
-        trim:true,
-        unique:function(){
+        required:function(){
             if(this.email){
                 return false;
             }
             return true;
-        }
+        },
+        trim:true,
+        // unique:true,
     },
     dob:{
         type:Date
