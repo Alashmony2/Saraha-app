@@ -1,4 +1,4 @@
-import { connectDB } from './DB/model/connecting.js';
+import { connectDB } from './DB/connecting.js';
 import {authRouter,userRouter,messageRouter} from './modules/index.js';
 function bootstrap(app, express){
     app.use(express.json());
