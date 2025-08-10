@@ -3,7 +3,7 @@ import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
 export const register = async (req, res, next) => {
   try {
-    //get data from request body
+    //get data from request
     const { fullName, email, password, phoneNumber, dob } = req.body;
     //check user existence
     const userExist = await User.findOne({
@@ -31,12 +31,12 @@ export const register = async (req, res, next) => {
     const user = new User({
       fullName,
       email,
-      password:bcrypt.hashSync(password, 10),
+      password: bcrypt.hashSync(password, 10),
       phoneNumber,
       dob,
     });
     //generate otp
-    const otp = Math.floor( Math.random() * 90000 + 10000);
+    const otp = Math.floor(Math.random() * 90000 + 10000);
     const otpExpire = Date.now() + 15 * 60 * 1000;
     user.otp = otp;
     user.otpExpire = otpExpire;
@@ -59,7 +59,35 @@ export const register = async (req, res, next) => {
   }
 };
 
-
+export const verifyAccount = async (req, res, next) => {
+  try {
+    //get data from request
+    const { otp, email } = req.body;
+    //check user otp & otpExpire
+    const userExist = await User.findOne({
+      email,
+      otp,
+      otpExpire: { $gt: Date.now() },
+    });
+    if (!userExist) {
+      throw new Error("Invalid OTP or OTP Expired", { cause: 400 });
+    }
+    //update user --> isVerify = true
+    userExist.isVerify = true;
+    userExist.otp = undefined;
+    userExist.otpExpire = undefined;
+    //save user
+    await userExist.save();
+    //send response
+    return res
+      .status(200)
+      .json({ message: "User Verified Successfully", success: true });
+  } catch (error) {
+    return res
+      .status(error.cause || 500)
+      .json({ message: error.message, success: false });
+  }
+};
 export const login = async (req, res, next) => {
   try {
     //get data from request body
@@ -91,17 +119,16 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       throw new Error("Invalid Credentials", { cause: 401 });
     }
-    
+
     //send response
     return res.status(200).json({
       message: "Login Successfully",
       success: true,
-      data:{userExist}
-    })
+      data: { userExist },
+    });
   } catch (error) {
     return res
       .status(error.cause || 500)
       .json({ message: error.message, success: false });
-
   }
 };
