@@ -1,3 +1,4 @@
+import { sendEmail } from "../../utils/email/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
 export const register = async (req, res, next) => {
@@ -33,6 +34,17 @@ export const register = async (req, res, next) => {
       password:bcrypt.hashSync(password, 10),
       phoneNumber,
       dob,
+    });
+    //generate otp
+    const otp = Math.floor( Math.random() * 90000 + 10000);
+    const otpExpire = Date.now() + 15 * 60 * 1000;
+    user.otp = otp;
+    user.otpExpire = otpExpire;
+    //send verification email
+    await sendEmail({
+      to: email,
+      subject: "verify your email",
+      html: `<p>Your otp to verify your account is ${otp}</p>`,
     });
     //create User
     await user.save();

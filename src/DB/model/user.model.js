@@ -42,7 +42,17 @@ const schema =new Schema({
     },
     dob:{
         type:Date
-    }
+    },
+    isVerified:{
+        type:Boolean,
+        default:false
+    },
+    otp:{
+        type:Number,
+    },
+    otpExpire:{
+        type:Date,
+    },
 },{timestamps:true,toObject:{virtuals:true},toJSON:{virtuals:true}});
 
 schema.virtual("fullName").get(function() {
