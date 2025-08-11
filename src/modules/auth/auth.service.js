@@ -1,4 +1,5 @@
 import { sendEmail } from "../../utils/email/index.js";
+import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
 export const register = async (req, res, next) => {
@@ -73,7 +74,7 @@ export const verifyAccount = async (req, res, next) => {
       throw new Error("Invalid OTP or OTP Expired", { cause: 400 });
     }
     //update user --> isVerify = true
-    userExist.isVerify = true;
+    userExist.isVerified = true;
     userExist.otp = undefined;
     userExist.otpExpire = undefined;
     //save user
@@ -88,6 +89,33 @@ export const verifyAccount = async (req, res, next) => {
       .json({ message: error.message, success: false });
   }
 };
+
+export const resendOTP = async (req, res, next) => {
+  try {
+    //get data from req
+  const {email} = req.body;
+  //generate new OTP && OTPExpire
+  const {otp,otpExpire} = generateOTP();
+  // update user
+  await User.updateOne({email},{otp,otpExpire})
+  //send email
+  await sendEmail({
+      to: email,
+      subject: "Resend OTP",
+      html: `<p>Your new otp to verify your account is ${otp}</p>`,
+  })
+  //sen response
+  return res.status(200).json({
+      message: "OTP Resend Successfully",
+      success: true,
+    });
+  } catch (error) {
+    return res
+      .status(error.cause || 500)
+      .json({ message: error.message, success: false });
+  }
+}
+
 export const login = async (req, res, next) => {
   try {
     //get data from request body
