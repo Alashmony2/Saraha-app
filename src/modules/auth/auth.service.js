@@ -3,6 +3,7 @@ import { sendEmail } from "../../utils/email/index.js";
 import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
   try {
@@ -113,10 +114,16 @@ export const googleLogin = async (req, res, next) => {
         userAgent : "google"
     });
   }
+  //generate token
+    const token = jwt.sign({ id: userExist._id , name: userExist.fullName },
+      "sdvcxiljkbnamsdxc",
+      {expiresIn:"15m"}
+    );
+    //send response
   return res.status(200).json({
     message: "User Logged In Successfully",
     success: true,
-    data:{userExist}
+    data:{token}
   });
 }
 
@@ -177,12 +184,16 @@ export const login = async (req, res, next) => {
     if (!isMatch) {
       throw new Error("Invalid Credentials", { cause: 401 });
     }
-
+    //generate token
+    const token = jwt.sign({ id: userExist._id , name: userExist.fullName },
+      "sdvcxiljkbnamsdxc",
+      {expiresIn:"15m"}
+    );
     //send response
     return res.status(200).json({
       message: "Login Successfully",
       success: true,
-      data: { userExist },
+      data: { token },
     });
   } catch (error) {
     return res
