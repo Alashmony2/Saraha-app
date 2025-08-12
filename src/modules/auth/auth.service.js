@@ -6,7 +6,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
-  try {
+  
     //get data from request
     const { fullName, email, password, phoneNumber, dob } = req.body;
     //check user existence
@@ -56,15 +56,9 @@ export const register = async (req, res, next) => {
       message: "User Created Successfully",
       success: true,
     });
-  } catch (error) {
-    return res
-      .status(error.cause || 500)
-      .json({ message: error.message, success: false });
-  }
 };
-
 export const verifyAccount = async (req, res, next) => {
-  try {
+  
     //get data from request
     const { otp, email } = req.body;
     //check user otp & otpExpire
@@ -86,13 +80,7 @@ export const verifyAccount = async (req, res, next) => {
     return res
       .status(200)
       .json({ message: "User Verified Successfully", success: true });
-  } catch (error) {
-    return res
-      .status(error.cause || 500)
-      .json({ message: error.message, success: false });
-  }
 };
-
 export const googleLogin = async (req, res, next) => {
   //get data from req
   const {idToken} = req.body;
@@ -125,10 +113,9 @@ export const googleLogin = async (req, res, next) => {
     success: true,
     data:{token}
   });
-}
-
+};
 export const resendOTP = async (req, res, next) => {
-  try {
+  
     //get data from req
   const {email} = req.body;
   //generate new OTP && OTPExpire
@@ -146,15 +133,10 @@ export const resendOTP = async (req, res, next) => {
       message: "OTP Resend Successfully",
       success: true,
     });
-  } catch (error) {
-    return res
-      .status(error.cause || 500)
-      .json({ message: error.message, success: false });
-  }
-}
-
+  
+};
 export const login = async (req, res, next) => {
-  try {
+  
     //get data from request body
     const { email, phoneNumber, password } = req.body;
     //check user existence
@@ -195,9 +177,4 @@ export const login = async (req, res, next) => {
       success: true,
       data: { token },
     });
-  } catch (error) {
-    return res
-      .status(error.cause || 500)
-      .json({ message: error.message, success: false });
-  }
 };
