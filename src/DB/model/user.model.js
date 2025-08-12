@@ -27,7 +27,12 @@ const schema =new Schema({
     },
     password:{
         type:String,
-        required:true
+        required:function (){
+            if(this.userAgent == 'google'){
+                return false;
+            }
+            return true;
+        }
     },
     phoneNumber:{
         type:String,
@@ -53,6 +58,11 @@ const schema =new Schema({
     otpExpire:{
         type:Date,
     },
+    userAgent:{
+        type:String,
+        enum : ["local","google"],
+        default : "local"
+    }
 },{timestamps:true,toObject:{virtuals:true},toJSON:{virtuals:true}});
 
 schema.virtual("fullName").get(function() {

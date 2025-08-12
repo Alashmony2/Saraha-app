@@ -1,7 +1,9 @@
+import { OAuth2Client } from "google-auth-library";
 import { sendEmail } from "../../utils/email/index.js";
 import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
+
 export const register = async (req, res, next) => {
   try {
     //get data from request
@@ -89,6 +91,34 @@ export const verifyAccount = async (req, res, next) => {
       .json({ message: error.message, success: false });
   }
 };
+
+export const googleLogin = async (req, res, next) => {
+  //get data from req
+  const {idToken} = req.body;
+  //verify id token
+  const client = new OAuth2Client(
+    "1040812342569-b8ov4tbtkn79j4t6hf9ujuemdotj4ufj.apps.googleusercontent.com"
+  );
+  const ticket = await client.verifyIdToken({idToken});
+  const payload = ticket.getPayload();
+  //check User
+  let userExist = await User.findOne({email : payload.email});
+  if(!userExist){
+    userExist = await User.create({
+        fullName: payload.name,
+        email: payload.email,
+        phoneNumber: payload.phone_number,
+        dob: payload.birthdate,
+        isVerified: true,
+        userAgent : "google"
+    });
+  }
+  return res.status(200).json({
+    message: "User Logged In Successfully",
+    success: true,
+    data:{userExist}
+  });
+}
 
 export const resendOTP = async (req, res, next) => {
   try {
