@@ -4,177 +4,196 @@ import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import joi from "joi";
 
 export const register = async (req, res, next) => {
-  
-    //get data from request
-    const { fullName, email, password, phoneNumber, dob } = req.body;
-    //check user existence
-    const userExist = await User.findOne({
-      $or: [
-        {
-          $and: [
-            { email: { $exists: true } },
-            { email: { $ne: null } },
-            { email },
-          ],
-        },
-        {
-          $and: [
-            { phoneNumber: { $exists: true } },
-            { phoneNumber: { $ne: null } },
-            { phoneNumber },
-          ],
-        },
-      ],
-    });
-    if (userExist) {
-      throw new Error("User already exists", { cause: 409 });
-    }
-    //prepare user data
-    const user = new User({
-      fullName,
-      email,
-      password: bcrypt.hashSync(password, 10),
-      phoneNumber,
-      dob,
-    });
-    //generate otp
-    const otp = Math.floor(Math.random() * 90000 + 10000);
-    const otpExpire = Date.now() + 15 * 60 * 1000;
-    user.otp = otp;
-    user.otpExpire = otpExpire;
-    //send verification email
-    await sendEmail({
-      to: email,
-      subject: "verify your email",
-      html: `<p>Your otp to verify your account is ${otp}</p>`,
-    });
-    //create User
-    await user.save();
-    return res.status(201).json({
-      message: "User Created Successfully",
-      success: true,
-    });
+  //get data from request
+  const { fullName, email, password, phoneNumber, dob } = req.body;
+  const schema = joi.object({
+    fullName: joi.string().min(3).max(50).required(),
+    email: joi.string().email().when("phoneNumber", {
+      is: joi.exist(),
+      then: joi.optional(),
+      otherwise: joi.required(),
+    }),
+    password: joi.string().regex(/^[a-zA-z0-9]{8,30}$/),
+    phoneNumber: joi.string(),
+    dob: joi.date(),
+  }).or('email','phoneNumber');
+  const {value,error} = schema.validate(req.body,{abortEarly:false});
+  if(error){
+    let errMessages = error.details.map((err)=>{
+      return err.message
+    })
+    errMessages = errMessages.join(", ")
+    console.log(errMessages);
+    throw new Error (errMessages,{cause:400})
+  }
+  //check user existence
+  const userExist = await User.findOne({
+    $or: [
+      {
+        $and: [
+          { email: { $exists: true } },
+          { email: { $ne: null } },
+          { email },
+        ],
+      },
+      {
+        $and: [
+          { phoneNumber: { $exists: true } },
+          { phoneNumber: { $ne: null } },
+          { phoneNumber },
+        ],
+      },
+    ],
+  });
+  if (userExist) {
+    throw new Error("User already exists", { cause: 409 });
+  }
+  //prepare user data
+  const user = new User({
+    fullName,
+    email,
+    password: bcrypt.hashSync(password, 10),
+    phoneNumber,
+    dob,
+  });
+  //generate otp
+  const otp = Math.floor(Math.random() * 90000 + 10000);
+  const otpExpire = Date.now() + 15 * 60 * 1000;
+  user.otp = otp;
+  user.otpExpire = otpExpire;
+  //send verification email
+  if(email)
+  await sendEmail({
+    to: email,
+    subject: "verify your email",
+    html: `<p>Your otp to verify your account is ${otp}</p>`,
+  });
+  //create User
+  await user.save();
+  return res.status(201).json({
+    message: "User Created Successfully",
+    success: true,
+  });
 };
 export const verifyAccount = async (req, res, next) => {
-  
-    //get data from request
-    const { otp, email } = req.body;
-    //check user otp & otpExpire
-    const userExist = await User.findOne({
-      email,
-      otp,
-      otpExpire: { $gt: Date.now() },
-    });
-    if (!userExist) {
-      throw new Error("Invalid OTP or OTP Expired", { cause: 400 });
-    }
-    //update user --> isVerify = true
-    userExist.isVerified = true;
-    userExist.otp = undefined;
-    userExist.otpExpire = undefined;
-    //save user
-    await userExist.save();
-    //send response
-    return res
-      .status(200)
-      .json({ message: "User Verified Successfully", success: true });
+  //get data from request
+  const { otp, email } = req.body;
+  //check user otp & otpExpire
+  const userExist = await User.findOne({
+    email,
+    otp,
+    otpExpire: { $gt: Date.now() },
+  });
+  if (!userExist) {
+    throw new Error("Invalid OTP or OTP Expired", { cause: 400 });
+  }
+  //update user --> isVerify = true
+  userExist.isVerified = true;
+  userExist.otp = undefined;
+  userExist.otpExpire = undefined;
+  //save user
+  await userExist.save();
+  //send response
+  return res
+    .status(200)
+    .json({ message: "User Verified Successfully", success: true });
 };
 export const googleLogin = async (req, res, next) => {
   //get data from req
-  const {idToken} = req.body;
+  const { idToken } = req.body;
   //verify id token
   const client = new OAuth2Client(
     "1040812342569-b8ov4tbtkn79j4t6hf9ujuemdotj4ufj.apps.googleusercontent.com"
   );
-  const ticket = await client.verifyIdToken({idToken});
+  const ticket = await client.verifyIdToken({ idToken });
   const payload = ticket.getPayload();
   //check User
-  let userExist = await User.findOne({email : payload.email});
-  if(!userExist){
+  let userExist = await User.findOne({ email: payload.email });
+  if (!userExist) {
     userExist = await User.create({
-        fullName: payload.name,
-        email: payload.email,
-        phoneNumber: payload.phone_number,
-        dob: payload.birthdate,
-        isVerified: true,
-        userAgent : "google"
+      fullName: payload.name,
+      email: payload.email,
+      phoneNumber: payload.phone_number,
+      dob: payload.birthdate,
+      isVerified: true,
+      userAgent: "google",
     });
   }
   //generate token
-    const token = jwt.sign({ id: userExist._id , name: userExist.fullName },
-      "sdvcxiljkbnamsdxc",
-      {expiresIn:"15m"}
-    );
-    //send response
+  const token = jwt.sign(
+    { id: userExist._id, name: userExist.fullName },
+    "sdvcxiljkbnamsdxc",
+    { expiresIn: "15m" }
+  );
+  //send response
   return res.status(200).json({
     message: "User Logged In Successfully",
     success: true,
-    data:{token}
+    data: { token },
   });
 };
 export const resendOTP = async (req, res, next) => {
-  
-    //get data from req
-  const {email} = req.body;
+  //get data from req
+  const { email } = req.body;
   //generate new OTP && OTPExpire
-  const {otp,otpExpire} = generateOTP();
+  const { otp, otpExpire } = generateOTP();
   // update user
-  await User.updateOne({email},{otp,otpExpire})
+  await User.updateOne({ email }, { otp, otpExpire });
   //send email
   await sendEmail({
-      to: email,
-      subject: "Resend OTP",
-      html: `<p>Your new otp to verify your account is ${otp}</p>`,
-  })
+    to: email,
+    subject: "Resend OTP",
+    html: `<p>Your new otp to verify your account is ${otp}</p>`,
+  });
   //sen response
   return res.status(200).json({
-      message: "OTP Resend Successfully",
-      success: true,
-    });
-  
+    message: "OTP Resend Successfully",
+    success: true,
+  });
 };
 export const login = async (req, res, next) => {
-  
-    //get data from request body
-    const { email, phoneNumber, password } = req.body;
-    //check user existence
-    const userExist = await User.findOne({
-      $or: [
-        {
-          $and: [
-            { email: { $exists: true } },
-            { email: { $ne: null } },
-            { email },
-          ],
-        },
-        {
-          $and: [
-            { phoneNumber: { $exists: true } },
-            { phoneNumber: { $ne: null } },
-            { phoneNumber },
-          ],
-        },
-      ],
-    });
-    if (!userExist) {
-      throw new Error("Invalid Credentials", { cause: 401 });
-    }
-    //check password
-    const isMatch = bcrypt.compareSync(password, userExist.password);
-    if (!isMatch) {
-      throw new Error("Invalid Credentials", { cause: 401 });
-    }
-    //generate token
-    const token = jwt.sign({ id: userExist._id , name: userExist.fullName },
-      "sdvcxiljkbnamsdxc",
-      {expiresIn:"15m"}
-    );
-    //send response
-    return res.status(200).json({
-      message: "Login Successfully",
-      success: true,
-      data: { token },
-    });
+  //get data from request body
+  const { email, phoneNumber, password } = req.body;
+  //check user existence
+  const userExist = await User.findOne({
+    $or: [
+      {
+        $and: [
+          { email: { $exists: true } },
+          { email: { $ne: null } },
+          { email },
+        ],
+      },
+      {
+        $and: [
+          { phoneNumber: { $exists: true } },
+          { phoneNumber: { $ne: null } },
+          { phoneNumber },
+        ],
+      },
+    ],
+  });
+  if (!userExist) {
+    throw new Error("Invalid Credentials", { cause: 401 });
+  }
+  //check password
+  const isMatch = bcrypt.compareSync(password, userExist.password);
+  if (!isMatch) {
+    throw new Error("Invalid Credentials", { cause: 401 });
+  }
+  //generate token
+  const token = jwt.sign(
+    { id: userExist._id, name: userExist.fullName },
+    "sdvcxiljkbnamsdxc",
+    { expiresIn: "15m" }
+  );
+  //send response
+  return res.status(200).json({
+    message: "Login Successfully",
+    success: true,
+    data: { token },
+  });
 };
