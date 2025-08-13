@@ -9,26 +9,6 @@ import joi from "joi";
 export const register = async (req, res, next) => {
   //get data from request
   const { fullName, email, password, phoneNumber, dob } = req.body;
-  const schema = joi.object({
-    fullName: joi.string().min(3).max(50).required(),
-    email: joi.string().email().when("phoneNumber", {
-      is: joi.exist(),
-      then: joi.optional(),
-      otherwise: joi.required(),
-    }),
-    password: joi.string().regex(/^[a-zA-z0-9]{8,30}$/),
-    phoneNumber: joi.string(),
-    dob: joi.date(),
-  }).or('email','phoneNumber');
-  const {value,error} = schema.validate(req.body,{abortEarly:false});
-  if(error){
-    let errMessages = error.details.map((err)=>{
-      return err.message
-    })
-    errMessages = errMessages.join(", ")
-    console.log(errMessages);
-    throw new Error (errMessages,{cause:400})
-  }
   //check user existence
   const userExist = await User.findOne({
     $or: [
