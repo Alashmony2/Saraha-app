@@ -5,12 +5,12 @@ export async function sendEmail({to, subject, html}) {
             host: 'smtp.gmail.com',
             port: 587,
             auth:{
-                user: "",
-                pass: ""
+                user: process.env.EMAIL_USER,
+                pass: process.env.EMAIL_PASS
             }
         });
         await transporter.sendMail({
-            from: "'Sara7a App'<>",
+            from: `'Sara7a App'<${process.env.EMAIL_USER}>`,
             to,
             subject,
             html
