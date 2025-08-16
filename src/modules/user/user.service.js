@@ -24,7 +24,7 @@ export const deleteAccount = async (req, res, next) => {
 };
 
 export const uploadProfilePicture = async (req, res, next) => {
-  const token = req.headers.authorization;
+  const token = req.headers.authorization?.split(" ")[1];;
   const { id } = verifyToken(token);
   const userExist = await User.findByIdAndUpdate(
   id,
