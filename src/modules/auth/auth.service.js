@@ -4,7 +4,6 @@ import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import joi from "joi";
 
 export const register = async (req, res, next) => {
   //get data from request
@@ -158,6 +157,9 @@ export const login = async (req, res, next) => {
   });
   if (!userExist) {
     throw new Error("Invalid Credentials", { cause: 401 });
+  }
+  if (userExist.isVerified == false) {
+    throw new Error("Verify Account First", { cause: 401 });
   }
   //check password
   const isMatch = bcrypt.compareSync(password, userExist.password);

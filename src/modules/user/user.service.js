@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "./../../DB/model/user.model.js";
+import { verifyToken } from "../../utils/token/index.js";
 export const deleteAccount = async (req, res, next) => {
   try {
     //get data from req (token)
@@ -20,4 +21,21 @@ export const deleteAccount = async (req, res, next) => {
       .status(error.cause || 500)
       .json({ message: error.message, success: false });
   }
+};
+
+export const uploadProfilePicture = async (req, res, next) => {
+  const token = req.headers.authorization;
+  const { id } = verifyToken(token);
+  const userExist = await User.findByIdAndUpdate(
+  id,
+  { profilePic: req.file.path },
+  { new: true }
+);
+
+  if (!userExist) {
+    throw new Error("User Not Found", { cause: 404 });
+  }
+  return res
+    .status(200)
+    .json({ message: "Profile Picture Uploaded Successfully",success:true,data:userExist });
 };

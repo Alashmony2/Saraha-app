@@ -1,82 +1,88 @@
 import { model, Schema } from "mongoose";
 
-const schema =new Schema({
-    firstName:{
-        type:String,
-        required:true,
-        trim:true,
-        lowercase:true
+const schema = new Schema(
+  {
+    firstName: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
     },
-    lastName:{
-        type:String,
-        required:true,
-        trim:true,
-        lowercase:true
+    lastName: {
+      type: String,
+      required: true,
+      trim: true,
+      lowercase: true,
     },
-    email:{
-        type:String,
-        required:function(){
-            if(this.phoneNumber){
-                return false;
-            }
-            return true;
-        },
-        trim:true,
-        lowercase:true,
-        // unique:true
-    },
-    password:{
-        type:String,
-        required:function (){
-            if(this.userAgent == 'google'){
-                return false;
-            }
-            return true;
+    email: {
+      type: String,
+      required: function () {
+        if (this.phoneNumber) {
+          return false;
         }
+        return true;
+      },
+      trim: true,
+      lowercase: true,
+      // unique:true
     },
-    phoneNumber:{
-        type:String,
-        required:function(){
-            if(this.email){
-                return false;
-            }
-            return true;
-        },
-        trim:true,
-        // unique:true,
+    password: {
+      type: String,
+      required: function () {
+        if (this.userAgent == "google") {
+          return false;
+        }
+        return true;
+      },
     },
-    dob:{
-        type:Date
+    phoneNumber: {
+      type: String,
+      required: function () {
+        if (this.email) {
+          return false;
+        }
+        return true;
+      },
+      trim: true,
+      // unique:true,
     },
-    isVerified:{
-        type:Boolean,
-        default:false
+    dob: {
+      type: Date,
     },
-    otp:{
-        type:Number,
+    isVerified: {
+      type: Boolean,
+      default: false,
     },
-    otpExpire:{
-        type:Date,
+    otp: {
+      type: Number,
     },
-    userAgent:{
-        type:String,
-        enum : ["local","google"],
-        default : "local"
-    }
-},{timestamps:true,toObject:{virtuals:true},toJSON:{virtuals:true}});
+    otpExpire: {
+      type: Date,
+    },
+    userAgent: {
+      type: String,
+      enum: ["local", "google"],
+      default: "local",
+    },
+    profilePic: {
+      type: String,
+    },
+  },
+  { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
+);
 
-schema.virtual("fullName").get(function() {
-    return `${this.firstName} ${this.lastName}`;
+schema.virtual("fullName").get(function () {
+  return `${this.firstName} ${this.lastName}`;
 });
 
-schema.virtual("fullName").set(function(value){
-    const [firstName , lastName] = value.split(" ");
-    this.firstName = firstName;
-    this.lastName = lastName;
+schema.virtual("fullName").set(function (value) {
+  const [firstName, lastName] = value.split(" ");
+  this.firstName = firstName;
+  this.lastName = lastName;
 });
 
-schema.virtual("age").get(function(){
-    return new Date().getFullYear() - new Date(this.dob).getFullYear();
-})
+schema.virtual("age").get(function () {
+  return new Date().getFullYear() - new Date(this.dob).getFullYear();
+});
 
-export const User = model("User",schema);
+export const User = model("User", schema);

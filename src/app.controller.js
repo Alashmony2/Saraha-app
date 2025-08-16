@@ -3,6 +3,7 @@ import { authRouter, userRouter, messageRouter } from "./modules/index.js";
 import cors from "cors";
 function bootstrap(app, express) {
   app.use(express.json());
+  app.use("/uploads", express.static("uploads"));
   app.use(
     cors({
       origin: "*",
