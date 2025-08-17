@@ -9,7 +9,7 @@ router.delete("/", userService.deleteAccount);
 router.post(
   "/upload-profile-picture",
   isAuthenticated,
-  fileUpload().single("profilePic"),
+  fileUpload({folder:"profile-pictures"}).single("profilePic"),
   fileValidationMiddleware(),
   userService.uploadProfilePicture
 );
