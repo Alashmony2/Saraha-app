@@ -1,6 +1,5 @@
 import jwt from "jsonwebtoken";
 import { User } from "./../../DB/model/user.model.js";
-import { verifyToken } from "../../utils/token/index.js";
 export const deleteAccount = async (req, res, next) => {
   try {
     //get data from req (token)
@@ -24,10 +23,8 @@ export const deleteAccount = async (req, res, next) => {
 };
 
 export const uploadProfilePicture = async (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];;
-  const { id } = verifyToken(token);
   const userExist = await User.findByIdAndUpdate(
-  id,
+  req.user._id,
   { profilePic: req.file.path },
   { new: true }
 );
