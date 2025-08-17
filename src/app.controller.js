@@ -1,4 +1,5 @@
 import { connectDB } from "./DB/connecting.js";
+import fs from 'fs';
 import { authRouter, userRouter, messageRouter } from "./modules/index.js";
 import cors from "cors";
 function bootstrap(app, express) {
@@ -15,6 +16,9 @@ function bootstrap(app, express) {
   app.use("/user", userRouter);
   //global error handler
   app.use((err, req, res, next) => {
+    if(req.file){
+      fs.unlinkSync(req.file.path);
+    }
     return res.status(err.cause || 500).json({
       message: err.message,
       success: false,

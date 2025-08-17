@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { User } from "./../../DB/model/user.model.js";
+import fs from "fs";
 export const deleteAccount = async (req, res, next) => {
   try {
     //get data from req (token)
@@ -23,16 +24,24 @@ export const deleteAccount = async (req, res, next) => {
 };
 
 export const uploadProfilePicture = async (req, res, next) => {
+  //delete old image
+  if (req.user.profilePic) {
+    fs.unlinkSync(req.user.profilePic);
+  }
   const userExist = await User.findByIdAndUpdate(
-  req.user._id,
-  { profilePic: req.file.path },
-  { new: true }
-);
+    req.user._id,
+    { profilePic: req.file.path },
+    { new: true }
+  );
 
   if (!userExist) {
     throw new Error("User Not Found", { cause: 404 });
   }
   return res
     .status(200)
-    .json({ message: "Profile Picture Uploaded Successfully",success:true,data:userExist });
+    .json({
+      message: "Profile Picture Uploaded Successfully",
+      success: true,
+      data: userExist,
+    });
 };
