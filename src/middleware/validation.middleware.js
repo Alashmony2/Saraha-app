@@ -1,3 +1,4 @@
+import joi from 'joi'
 export const isValid = (schema) => {
   return (req, res, next) => {
     const { value, error } = schema.validate(req.body, { abortEarly: false });
@@ -11,3 +12,13 @@ export const isValid = (schema) => {
     next();
   };
 };
+
+export const generalFields = {
+  email:joi.string().email(),
+  phoneNumber:joi.string().length(11),
+  password:joi.string().min(8),
+  name:joi.string().min(3).max(30),
+  dob:joi.date(),
+  otp:joi.string().length(5),
+  rePassword:(ref)=> joi.string().min(8).valid(joi.ref(ref)),
+}

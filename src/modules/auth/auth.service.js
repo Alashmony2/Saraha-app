@@ -2,7 +2,7 @@ import { OAuth2Client } from "google-auth-library";
 import { sendEmail } from "../../utils/email/index.js";
 import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
-import bcrypt from "bcrypt";
+import { comparePassword, hashPassword } from "../../utils/hash/index.js";
 import jwt from "jsonwebtoken";
 
 export const register = async (req, res, next) => {
@@ -34,7 +34,7 @@ export const register = async (req, res, next) => {
   const user = new User({
     fullName,
     email,
-    password: bcrypt.hashSync(password, 10),
+    password: hashPassword(password),
     phoneNumber,
     dob,
   });
@@ -44,12 +44,12 @@ export const register = async (req, res, next) => {
   user.otp = otp;
   user.otpExpire = otpExpire;
   //send verification email
-  if(email)
-  await sendEmail({
-    to: email,
-    subject: "verify your email",
-    html: `<p>Your otp to verify your account is ${otp}</p>`,
-  });
+  if (email)
+    await sendEmail({
+      to: email,
+      subject: "verify your email",
+      html: `<p>Your otp to verify your account is ${otp}</p>`,
+    });
   //create User
   await user.save();
   return res.status(201).json({
@@ -114,22 +114,25 @@ export const googleLogin = async (req, res, next) => {
     data: { token },
   });
 };
-export const resendOTP = async (req, res, next) => {
+export const sendOTP = async (req, res, next) => {
   //get data from req
   const { email } = req.body;
   //generate new OTP && OTPExpire
   const { otp, otpExpire } = generateOTP();
   // update user
-  await User.updateOne({ email }, { otp, otpExpire });
+  const userExist = await User.findOneAndUpdate({ email }, { otp, otpExpire });
+  if(!userExist){
+    throw new Error("User Not Found", { cause: 404 });
+  }
   //send email
   await sendEmail({
     to: email,
-    subject: "Resend OTP",
+    subject: "New OTP",
     html: `<p>Your new otp to verify your account is ${otp}</p>`,
   });
   //sen response
   return res.status(200).json({
-    message: "OTP Resend Successfully",
+    message: "OTP Sent Successfully",
     success: true,
   });
 };
@@ -162,7 +165,7 @@ export const login = async (req, res, next) => {
     throw new Error("Verify Account First", { cause: 401 });
   }
   //check password
-  const isMatch = bcrypt.compareSync(password, userExist.password);
+  const isMatch = comparePassword(password, userExist.password);
   if (!isMatch) {
     throw new Error("Invalid Credentials", { cause: 401 });
   }
@@ -179,3 +182,30 @@ export const login = async (req, res, next) => {
     data: { token },
   });
 };
+export const resetPassword = async(req,res,next)=>{
+  //get data from request
+  const {email,otp,newPassword} = req.body;
+  //check user existence
+  const userExist = await User.findOne({email});
+
+  if(!userExist){
+    throw new Error("User not found",{cause:404})
+  }
+  //check otp isValid
+  if(userExist.otp != otp){
+    throw new Error("Invalid OTP",{cause:401})
+  }
+  //check otp is expired
+  if(userExist.otpExpire < Date.now()){
+    throw new Error("OTP Expired",{cause:401})
+  }
+  //update user
+  userExist.password = hashPassword(newPassword);
+  //save user
+  await userExist.save();
+  //send response
+  return res.status(200).json({
+    message: "Password Reset Successfully",
+    success: true,
+  });
+}
