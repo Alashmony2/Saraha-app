@@ -4,6 +4,8 @@ import { generateOTP } from "../../utils/otp/index.js";
 import { User } from "./../../DB/model/user.model.js";
 import { comparePassword, hashPassword } from "../../utils/hash/index.js";
 import jwt from "jsonwebtoken";
+import { generateToken } from "../../utils/token/index.js";
+import { Token } from "../../DB/model/token.model.js";
 
 export const register = async (req, res, next) => {
   //get data from request
@@ -170,16 +172,26 @@ export const login = async (req, res, next) => {
     throw new Error("Invalid Credentials", { cause: 401 });
   }
   //generate token
-  const token = jwt.sign(
-    { id: userExist._id, name: userExist.fullName },
-    "sdvcxiljkbnamsdxc",
-    { expiresIn: "15m" }
-  );
+  const accessToken = generateToken({
+    payload: { id: userExist._id },
+    expireTime: "5s"
+  });
+  const refreshToken= generateToken({
+    payload: { id: userExist._id},
+    expireTime: "7d"
+  });
+  const decoded = jwt.decode(refreshToken);
+  await Token.create({
+    token:refreshToken,
+    userId:userExist._id,
+    type:"refresh",
+    expiresAt: new Date(decoded.exp * 1000),
+  })
   //send response
   return res.status(200).json({
     message: "Login Successfully",
     success: true,
-    data: { token },
+    data: { accessToken,refreshToken },
   });
 };
 export const resetPassword = async(req,res,next)=>{
