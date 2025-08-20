@@ -48,8 +48,15 @@ export const uploadProfilePicture = async (req, res, next) => {
 export const uploadProfilePictureCloud = async (req, res, next) => {
   const user = req.user;
   const file = req.file;
+  // delete old file
+  await cloudinary.uploader.destroy(user.profilePic.public_id);
+  // upload new file
   const { secure_url, public_id } = await cloudinary.uploader.upload(
-    req.file.path
+    req.file.path,
+    {
+      folder: `saraha-app/users/${user._id}/profile-picture`,
+      // public_id: user.profilePic.public_id,
+    }
   );
   await User.updateOne(
     { _id: req.user._id },

@@ -50,6 +50,7 @@ export const globalErrorHandler = async (err, req, res, next) => {
       success: false,
       globalErrorHandler: true,
       stack: err.stack,
+      error:err
     });
     return next(err);
 };

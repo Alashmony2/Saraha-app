@@ -25,6 +25,7 @@ function bootstrap(app, express) {
       message: err.message,
       success: false,
       stack: err.stack,
+      error:err
     });
   });
 }
