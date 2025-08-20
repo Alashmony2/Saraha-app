@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import { User } from "./../../DB/model/user.model.js";
 import fs from "fs";
+import cloudinary from "./../../utils/cloud/cloudinary.js";
 export const deleteAccount = async (req, res, next) => {
   try {
     //get data from req (token)
@@ -37,11 +38,26 @@ export const uploadProfilePicture = async (req, res, next) => {
   if (!userExist) {
     throw new Error("User Not Found", { cause: 404 });
   }
-  return res
-    .status(200)
-    .json({
-      message: "Profile Picture Uploaded Successfully",
-      success: true,
-      data: userExist,
-    });
+  return res.status(200).json({
+    message: "Profile Picture Uploaded Successfully",
+    success: true,
+    data: userExist,
+  });
+};
+
+export const uploadProfilePictureCloud = async (req, res, next) => {
+  const user = req.user;
+  const file = req.file;
+  const { secure_url, public_id } = await cloudinary.uploader.upload(
+    req.file.path
+  );
+  await User.updateOne(
+    { _id: req.user._id },
+    { profilePic: { secure_url, public_id } }
+  );
+  return res.status(200).json({
+    message: "Profile Picture Uploaded Successfully",
+    success: true,
+    data: { secure_url, public_id },
+  });
 };

@@ -267,7 +267,7 @@ export const login = async (req, res, next) => {
   //generate token
   const accessToken = generateToken({
     payload: { id: userExist._id, email: userExist.email },
-    expireTime: "5s",
+    expireTime: "15m",
   });
 
   const refreshToken = generateToken({

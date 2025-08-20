@@ -67,8 +67,11 @@ const schema = new Schema(
       enum: ["local", "google"],
       default: "local",
     },
+    //case local profilePic: String
+    //case cloud profilePic: {secure_url: String, public_id: String}
     profilePic: {
-      type: String,
+      secure_url: String,
+      public_id: String
     },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
