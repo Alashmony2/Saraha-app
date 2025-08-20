@@ -54,11 +54,14 @@ const schema = new Schema(
       default: false,
     },
     otp: {
+      code: String,
+      expiresAt: Date,
+    },
+    failedOtpAttempts: {
       type: Number,
+      default: 0,
     },
-    otpExpire: {
-      type: Date,
-    },
+    otpBannedUntil: Date,
     userAgent: {
       type: String,
       enum: ["local", "google"],

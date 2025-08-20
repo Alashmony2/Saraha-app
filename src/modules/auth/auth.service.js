@@ -60,27 +60,96 @@ export const register = async (req, res, next) => {
   });
 };
 export const verifyAccount = async (req, res, next) => {
-  //get data from request
   const { otp, email } = req.body;
-  //check user otp & otpExpire
-  const userExist = await User.findOne({
-    email,
-    otp,
-    otpExpire: { $gt: Date.now() },
-  });
-  if (!userExist) {
-    throw new Error("Invalid OTP or OTP Expired", { cause: 400 });
+
+  // Find user by email
+  const user = await User.findOne({ email });
+  if (!user) {
+    return next(new Error("User not found", { cause: 404 }));
   }
-  //update user --> isVerify = true
-  userExist.isVerified = true;
-  userExist.otp = undefined;
-  userExist.otpExpire = undefined;
-  //save user
-  await userExist.save();
-  //send response
-  return res
-    .status(200)
-    .json({ message: "User Verified Successfully", success: true });
+
+  // Check if user is banned
+  if (user.otpBannedUntil && user.otpBannedUntil > new Date()) {
+    const remainingTime = Math.ceil(
+      (user.otpBannedUntil - new Date()) / 1000 / 60
+    );
+    return next(
+      new Error(
+        `Account temporarily locked. Please try again after ${remainingTime} minutes`,
+        { cause: 429 }
+      )
+    );
+  }
+
+  // Check if OTP exists and is not expired
+  if (
+    !user.otp?.code ||
+    !user.otp?.expiresAt ||
+    new Date() > user.otp.expiresAt
+  ) {
+    // Increment failed attempts
+    user.failedOtpAttempts += 1;
+
+    // Check if we've reached maximum attempts
+    if (user.failedOtpAttempts >= 5) {
+      user.otpBannedUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes ban
+      await user.save();
+      return next(
+        new Error(
+          "Too many failed attempts. Your account is temporarily locked for 5 minutes.",
+          { cause: 429 }
+        )
+      );
+    }
+
+    await user.save();
+    const remainingAttempts = 5 - user.failedOtpAttempts;
+    return next(
+      new Error(
+        `Invalid or expired OTP. ${remainingAttempts} attempts remaining.`,
+        { cause: 400 }
+      )
+    );
+  }
+
+  // Verify OTP
+  if (user.otp.code !== otp) {
+    // Increment failed attempts
+    user.failedOtpAttempts += 1;
+
+    // Check if we've reached maximum attempts
+    if (user.failedOtpAttempts >= 5) {
+      user.otpBannedUntil = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes ban
+      await user.save();
+      return next(
+        new Error(
+          "Too many failed attempts. Your account is temporarily locked for 5 minutes.",
+          { cause: 429 }
+        )
+      );
+    }
+
+    await user.save();
+    const remainingAttempts = 5 - user.failedOtpAttempts;
+    return next(
+      new Error(`Invalid OTP. ${remainingAttempts} attempts remaining.`, {
+        cause: 400,
+      })
+    );
+  }
+
+  // If  OTP is valid
+  // Update user to mark as verified and clear OTP data
+  user.isVerified = true;
+  user.otp = undefined;
+  user.failedOtpAttempts = 0;
+  user.otpBannedUntil = null;
+  await user.save();
+
+  return res.status(200).json({
+    message: "Account verified successfully",
+    success: true,
+  });
 };
 export const googleLogin = async (req, res, next) => {
   //get data from req
@@ -117,22 +186,46 @@ export const googleLogin = async (req, res, next) => {
   });
 };
 export const sendOTP = async (req, res, next) => {
-  //get data from req
   const { email } = req.body;
-  //generate new OTP && OTPExpire
-  const { otp, otpExpire } = generateOTP();
-  // update user
-  const userExist = await User.findOneAndUpdate({ email }, { otp, otpExpire });
-  if(!userExist){
-    throw new Error("User Not Found", { cause: 404 });
+
+  // Check if user exists
+  const user = await User.findOne({ email });
+  if (!user) return next(new Error("User not found", { cause: 404 }));
+
+  // Check if user is banned from requesting OTP
+  if (user.otpBannedUntil && user.otpBannedUntil > new Date()) {
+    const remainingTime = Math.ceil(
+      (user.otpBannedUntil - new Date()) / 1000 / 60
+    );
+    return next(
+      new Error(
+        `Too many failed attempts. Please try again after ${remainingTime} minutes`,
+        { cause: 429 }
+      )
+    );
   }
-  //send email
+
+  // Generate OTP
+  const { otp, otpExpire } = generateOTP(2 * 60 * 1000); // 2 minutes expiration
+  const otpExpiry = new Date(otpExpire);
+
+  // Update user with new OTP and reset failed attempts if ban has expired
+  user.otp = {
+    code: otp.toString(), // Ensure OTP is a string
+    expiresAt: otpExpiry,
+  };
+  user.failedOtpAttempts = 0;
+  user.otpBannedUntil = null;
+
+  await user.save();
+
+  // Send email with OTP
   await sendEmail({
     to: email,
     subject: "New OTP",
-    html: `<p>Your new otp to verify your account is ${otp}</p>`,
+    html: `<p>Your new OTP to verify your account is ${otp}. This code will expire in 2 minutes.</p>`,
   });
-  //sen response
+
   return res.status(200).json({
     message: "OTP Sent Successfully",
     success: true,
@@ -173,43 +266,51 @@ export const login = async (req, res, next) => {
   }
   //generate token
   const accessToken = generateToken({
+    payload: { id: userExist._id, email: userExist.email },
+    expireTime: "5s",
+  });
+
+  const refreshToken = generateToken({
     payload: { id: userExist._id },
-    expireTime: "5s"
+    secretKey: "refresh_secret_key",
+    expireTime: "7d",
   });
-  const refreshToken= generateToken({
-    payload: { id: userExist._id},
-    expireTime: "7d"
-  });
-  const decoded = jwt.decode(refreshToken);
+
+  // Save refresh token to database
   await Token.create({
-    token:refreshToken,
-    userId:userExist._id,
-    type:"refresh",
-    expiresAt: new Date(decoded.exp * 1000),
-  })
-  //send response
+    token: refreshToken,
+    userId: userExist._id,
+    type: "refresh",
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+  });
+
   return res.status(200).json({
-    message: "Login Successfully",
-    success: true,
-    data: { accessToken,refreshToken },
+    message: "Login successful",
+    accessToken,
+    refreshToken,
+    user: {
+      id: userExist._id,
+      email: userExist.email,
+      fullName: userExist.fullName,
+    },
   });
 };
-export const resetPassword = async(req,res,next)=>{
+export const resetPassword = async (req, res, next) => {
   //get data from request
-  const {email,otp,newPassword} = req.body;
+  const { email, otp, newPassword } = req.body;
   //check user existence
-  const userExist = await User.findOne({email});
+  const userExist = await User.findOne({ email });
 
-  if(!userExist){
-    throw new Error("User not found",{cause:404})
+  if (!userExist) {
+    throw new Error("User not found", { cause: 404 });
   }
   //check otp isValid
-  if(userExist.otp != otp){
-    throw new Error("Invalid OTP",{cause:401})
+  if (userExist.otp != otp) {
+    throw new Error("Invalid OTP", { cause: 401 });
   }
   //check otp is expired
-  if(userExist.otpExpire < Date.now()){
-    throw new Error("OTP Expired",{cause:401})
+  if (userExist.otpExpire < Date.now()) {
+    throw new Error("OTP Expired", { cause: 401 });
   }
   //update user
   userExist.password = hashPassword(newPassword);
@@ -220,4 +321,4 @@ export const resetPassword = async(req,res,next)=>{
     message: "Password Reset Successfully",
     success: true,
   });
-}
+};
