@@ -6,7 +6,7 @@ import { fileValidationMiddleware } from "../../middleware/file-validation.middl
 import { isAuthenticated } from "../../middleware/auth.middleware.js";
 
 const router = Router();
-router.delete("/", userService.deleteAccount);
+router.delete("/", isAuthenticated,userService.deleteAccount);
 router.post(
   "/upload-profile-picture",
   isAuthenticated,

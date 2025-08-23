@@ -1,27 +1,21 @@
-import jwt from "jsonwebtoken";
 import { User } from "./../../DB/model/user.model.js";
 import fs from "fs";
 import cloudinary from "./../../utils/cloud/cloudinary.js";
+
 export const deleteAccount = async (req, res, next) => {
-  try {
-    //get data from req (token)
-    const token = req.headers.authorization;
-    const payload = jwt.verify(token, "sdvcxiljkbnamsdxc");
-    const { id } = payload;
-    //delete user
-    const deletedUser = await User.findByIdAndDelete(id);
-    if (!deletedUser) {
-      throw new Error("user not found", { cause: 404 });
-    }
-    //send response
-    return res
-      .status(200)
-      .json({ message: "User Deleted Successfully", success: true });
-  } catch (error) {
-    return res
-      .status(error.cause || 500)
-      .json({ message: error.message, success: false });
+  //delete user folder from server [cloudinary | local]
+  if (req.user.profilePic.public_id) {
+    await cloudinary.api.delete_resources_by_prefix(
+      `saraha-app/users/${req.user._id}`
+    );
+    await cloudinary.api.delete_folder(`saraha-app/users/${req.user._id}`);
   }
+  //delete user from DB
+  await User.deleteOne({ _id: req.user._id });
+  //send response
+  return res
+    .status(200)
+    .json({ message: "User Deleted Successfully", success: true });
 };
 
 export const uploadProfilePicture = async (req, res, next) => {
@@ -48,16 +42,21 @@ export const uploadProfilePicture = async (req, res, next) => {
 export const uploadProfilePictureCloud = async (req, res, next) => {
   const user = req.user;
   const file = req.file;
-  // delete old file
-  await cloudinary.uploader.destroy(user.profilePic.public_id);
+
+  // Check if user has an existing profile picture with public_id
+  if (user.profilePic && user.profilePic.public_id) {
+    // delete old file
+    await cloudinary.uploader.destroy(user.profilePic.public_id);
+  }
+
   // upload new file
   const { secure_url, public_id } = await cloudinary.uploader.upload(
     req.file.path,
     {
       folder: `saraha-app/users/${user._id}/profile-picture`,
-      // public_id: user.profilePic.public_id,
     }
   );
+
   await User.updateOne(
     { _id: req.user._id },
     { profilePic: { secure_url, public_id } }

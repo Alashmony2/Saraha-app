@@ -9,7 +9,7 @@ export const isAuthenticated = async (req,res,next)=>{
     const payload = verifyToken(token);
     const userExist = await User.findById(payload.id);
     if(!userExist){
-      throw new Error("User Nor Found",{cause:404});
+      throw new Error("User Not Found",{cause:404});
     }
     req.user = userExist;
     return next()

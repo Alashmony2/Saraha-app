@@ -43,8 +43,10 @@ export const register = async (req, res, next) => {
   //generate otp
   const otp = Math.floor(Math.random() * 90000 + 10000);
   const otpExpire = Date.now() + 15 * 60 * 1000;
-  user.otp = otp;
-  user.otpExpire = otpExpire;
+  user.otp = {
+    code: otp.toString(),
+    expiresAt: new Date(otpExpire),
+  };
   //send verification email
   if (email)
     await sendEmail({
