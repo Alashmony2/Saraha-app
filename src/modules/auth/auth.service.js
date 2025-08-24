@@ -5,7 +5,7 @@ import { User } from "./../../DB/model/user.model.js";
 import { comparePassword, hashPassword } from "../../utils/hash/index.js";
 import jwt from "jsonwebtoken";
 import { generateToken } from "../../utils/token/index.js";
-import { Token } from "../../DB/model/token.model.js";
+import { Token } from './../../DB/model/token.model.js';
 
 export const register = async (req, res, next) => {
   //get data from request
@@ -268,23 +268,17 @@ export const login = async (req, res, next) => {
   }
   //generate token
   const accessToken = generateToken({
-    payload: { id: userExist._id, email: userExist.email },
-    expireTime: "15m",
+    payload: { id: userExist._id},
+    options:{expiresIn:"15m"}
   });
 
   const refreshToken = generateToken({
     payload: { id: userExist._id },
-    secretKey: "refresh_secret_key",
-    expireTime: "7d",
+    options:{expiresIn:"7d"}
   });
 
   // Save refresh token to database
-  await Token.create({
-    token: refreshToken,
-    userId: userExist._id,
-    type: "refresh",
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-  });
+  
 
   return res.status(200).json({
     message: "Login successful",
@@ -323,4 +317,16 @@ export const resetPassword = async (req, res, next) => {
     message: "Password Reset Successfully",
     success: true,
   });
+};
+export const logout = async (req, res, next) => {
+  // Get data from request
+  const token = req.headers.authorization;
+  //store token into DB
+  await Token.create({token,user:req.user._id})
+  //send response
+  return res.status(200).json({
+    message: "Logout Successfully",
+    success: true,
+  });
+
 };

@@ -1,28 +1,20 @@
-import mongoose from 'mongoose';
+import { model, Schema } from 'mongoose';
 
-const tokenSchema = new mongoose.Schema({
-    token: {
-        type: String,
-        required: true,
-        unique: true
-    },
-    userId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
+const schema = new Schema({
+    token: String,
+    user:{
+            type:Schema.Types.ObjectId,
+            ref:'User',
+        },
     type: {
         type: String,
-        enum: ['refresh'],
-        default: 'refresh'
+        enum: ['refresh', 'access'],
+        default: 'access'
     },
     expiresAt: {
         type: Date,
-        required: true
     }
 }, { timestamps: true });
 
-// Create index for automatic expiration
-tokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
-export const Token = mongoose.model('Token', tokenSchema);
+export const Token = model('Token', schema);
