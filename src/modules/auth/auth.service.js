@@ -269,7 +269,7 @@ export const login = async (req, res, next) => {
   //generate token
   const accessToken = generateToken({
     payload: { id: userExist._id},
-    options:{expiresIn:"15m"}
+    options:{expiresIn:"5s"}
   });
 
   const refreshToken = generateToken({
@@ -278,17 +278,21 @@ export const login = async (req, res, next) => {
   });
 
   // Save refresh token to database
-  
+  await Token.create({
+    token:refreshToken,
+    user:userExist._id,
+    type:"refresh",
+  })
 
   return res.status(200).json({
     message: "Login successful",
-    accessToken,
-    refreshToken,
+    data:{accessToken,refreshToken},
     user: {
       id: userExist._id,
       email: userExist.email,
       fullName: userExist.fullName,
     },
+    success:true,
   });
 };
 export const resetPassword = async (req, res, next) => {

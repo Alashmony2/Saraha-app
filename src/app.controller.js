@@ -17,16 +17,16 @@ function bootstrap(app, express) {
   app.use("/user", userRouter);
   //global error handler
   app.use(globalErrorHandler)
-  app.use((err, req, res, next) => {
-    if(req.file){
-      fs.unlinkSync(req.file.path);
-    }
-    return res.status(err.cause || 500).json({
-      message: err.message,
-      success: false,
-      stack: err.stack,
-      error:err
-    });
-  });
+  // app.use((err, req, res, next) => {
+  //   if(req.file){
+  //     fs.unlinkSync(req.file.path);
+  //   }
+  //   return res.status(err.cause || 500).json({
+  //     message: err.message,
+  //     success: false,
+  //     stack: err.stack,
+  //     error:err
+  //   });
+  // });
 }
 export default bootstrap;
