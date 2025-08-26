@@ -269,7 +269,7 @@ export const login = async (req, res, next) => {
   //generate token
   const accessToken = generateToken({
     payload: { id: userExist._id},
-    options:{expiresIn:"1d"}
+    options:{expiresIn:"5s"}
   });
 
   const refreshToken = generateToken({
@@ -317,6 +317,8 @@ export const resetPassword = async (req, res, next) => {
   userExist.credentialUpdatedAt = Date.now()
   //save user
   await userExist.save();
+  //destroy all refresh token
+  await Token.deleteMany({user:userExist._id,type:"refresh"})
   //send response
   return res.status(200).json({
     message: "Password Reset Successfully",
