@@ -71,7 +71,11 @@ const schema = new Schema(
     //case cloud profilePic: {secure_url: String, public_id: String}
     profilePic: {
       secure_url: String,
-      public_id: String
+      public_id: String,
+    },
+    credentialUpdatedAt: {
+      type: Date,
+      default: Date.now(),
     },
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }

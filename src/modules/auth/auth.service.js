@@ -269,7 +269,7 @@ export const login = async (req, res, next) => {
   //generate token
   const accessToken = generateToken({
     payload: { id: userExist._id},
-    options:{expiresIn:"5s"}
+    options:{expiresIn:"1d"}
   });
 
   const refreshToken = generateToken({
@@ -305,7 +305,7 @@ export const resetPassword = async (req, res, next) => {
     throw new Error("User not found", { cause: 404 });
   }
   //check otp isValid
-  if (userExist.otp != otp) {
+  if (userExist.otp.code != otp) {
     throw new Error("Invalid OTP", { cause: 401 });
   }
   //check otp is expired
@@ -314,6 +314,7 @@ export const resetPassword = async (req, res, next) => {
   }
   //update user
   userExist.password = hashPassword(newPassword);
+  userExist.credentialUpdatedAt = Date.now()
   //save user
   await userExist.save();
   //send response
