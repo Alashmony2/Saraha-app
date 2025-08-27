@@ -1,14 +1,11 @@
 import { User } from "./../../DB/model/user.model.js";
 import fs from "fs";
-import cloudinary from "./../../utils/cloud/cloudinary.js";
+import cloudinary, { deleteFolder } from "./../../utils/cloud/cloudinary.js";
 
 export const deleteAccount = async (req, res, next) => {
   //delete user folder from server [cloudinary | local]
   if (req.user.profilePic.public_id) {
-    await cloudinary.api.delete_resources_by_prefix(
-      `saraha-app/users/${req.user._id}`
-    );
-    await cloudinary.api.delete_folder(`saraha-app/users/${req.user._id}`);
+   await deleteFolder(`saraha-app/users/${req.user._id}`)
   }
   //delete user from DB
   await User.deleteOne({ _id: req.user._id });
