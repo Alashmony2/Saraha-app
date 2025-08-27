@@ -15,6 +15,7 @@ export const sendMessage = async (req, res, next) => {
     content,
     receiver,
     attachments,
+    sender:req.user?._id
   });
   //send response
   return res.status(201).json({
