@@ -5,7 +5,7 @@ import { User } from "./../../DB/model/user.model.js";
 import { comparePassword, hashPassword } from "../../utils/hash/index.js";
 import jwt from "jsonwebtoken";
 import { generateToken } from "../../utils/token/index.js";
-import { Token } from './../../DB/model/token.model.js';
+import { Token } from "./../../DB/model/token.model.js";
 
 export const register = async (req, res, next) => {
   //get data from request
@@ -266,33 +266,38 @@ export const login = async (req, res, next) => {
   if (!isMatch) {
     throw new Error("Invalid Credentials", { cause: 401 });
   }
+  //check if user is deleted
+  if (userExist.deletedAt) {
+    userExist.deletedAt = undefined;
+    await userExist.save();
+  }
   //generate token
   const accessToken = generateToken({
-    payload: { id: userExist._id},
-    options:{expiresIn:"15m"}
+    payload: { id: userExist._id },
+    options: { expiresIn: "15m" },
   });
 
   const refreshToken = generateToken({
     payload: { id: userExist._id },
-    options:{expiresIn:"7d"}
+    options: { expiresIn: "7d" },
   });
 
   // Save refresh token to database
   await Token.create({
-    token:refreshToken,
-    user:userExist._id,
-    type:"refresh",
-  })
+    token: refreshToken,
+    user: userExist._id,
+    type: "refresh",
+  });
 
   return res.status(200).json({
     message: "Login successful",
-    data:{accessToken,refreshToken},
+    data: { accessToken, refreshToken },
     user: {
       id: userExist._id,
       email: userExist.email,
       fullName: userExist.fullName,
     },
-    success:true,
+    success: true,
   });
 };
 export const resetPassword = async (req, res, next) => {
@@ -311,16 +316,16 @@ export const resetPassword = async (req, res, next) => {
   //check otp is expired
   if (userExist.otpExpire < Date.now()) {
     throw new Error("OTP Expired", { cause: 401 });
-  }  
+  }
   //update user
   userExist.password = hashPassword(newPassword);
-  userExist.credentialUpdatedAt = Date.now()
+  userExist.credentialUpdatedAt = Date.now();
   userExist.otp.code = undefined;
   userExist.otp.expiresAt = undefined;
   //save user
   await userExist.save();
   //destroy all refresh token
-  await Token.deleteMany({user:userExist._id,type:"refresh"})
+  await Token.deleteMany({ user: userExist._id, type: "refresh" });
   //send response
   return res.status(200).json({
     message: "Password Reset Successfully",
@@ -331,11 +336,10 @@ export const logout = async (req, res, next) => {
   // Get data from request
   const token = req.headers.authorization;
   //store token into DB
-  await Token.create({token,user:req.user._id})
+  await Token.create({ token, user: req.user._id });
   //send response
   return res.status(200).json({
     message: "Logout Successfully",
     success: true,
   });
-
 };

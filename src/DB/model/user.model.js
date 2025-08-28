@@ -1,4 +1,5 @@
 import { model, Schema } from "mongoose";
+import { type } from "os";
 
 const schema = new Schema(
   {
@@ -77,6 +78,7 @@ const schema = new Schema(
       type: Date,
       default: Date.now(),
     },
+    deletedAt:{type:Date}
   },
   { timestamps: true, toObject: { virtuals: true }, toJSON: { virtuals: true } }
 );
