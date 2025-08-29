@@ -51,6 +51,9 @@ export const uploadProfilePictureCloud = async (req, res, next) => {
     req.file.path,
     {
       folder: `saraha-app/users/${user._id}/profile-picture`,
+      width:300,
+      height:300,
+      crop:"fill"
     }
   );
 

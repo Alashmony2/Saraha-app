@@ -8,7 +8,10 @@ export const sendMessage = async (req, res, next) => {
   //upload into cloud
   const attachments = await uploadFiles({
     files,
-    options: { folder: `saraha-app/users/${receiver}/messages` },
+    options: { folder: `saraha-app/users/${receiver}/messages`,
+    width:300,
+    height:300,
+    crop:"fill" },
   });
   //create message
   await Message.create({

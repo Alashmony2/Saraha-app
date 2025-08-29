@@ -31,7 +31,6 @@ schedule.scheduleJob("0 25 4 * * *", async () => {
     type: "refresh",
     expiresAt: { $lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
   });
-  console.log("Tokens deleted successfully");
 });
 
 const app = express();
