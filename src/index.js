@@ -4,7 +4,10 @@ import { User } from "./DB/model/user.model.js";
 import schedule from "node-schedule";
 import { deleteFolder } from "./utils/cloud/cloudinary.js";
 import { Message } from "./DB/model/message.model.js";
-schedule.scheduleJob(" 1 50 4 * * *", async () => {
+import { Token } from "./DB/model/token.model.js";
+
+// Schedule job to delete soft-deleted users after 90 days
+schedule.scheduleJob("1 50 4 * * *", async () => {
   const users = await User.find({
     deletedAt: { $lte: Date.now() - 3 * 30 * 24 * 60 * 60 * 1000 },
   });
@@ -20,6 +23,17 @@ schedule.scheduleJob(" 1 50 4 * * *", async () => {
     receiver: { $in: users.map((user) => user._id) },
   });
 });
+
+// Schedule job to delete expired refresh tokens after 7 days
+schedule.scheduleJob("0 25 4 * * *", async () => {
+  // Delete refresh tokens that have expired more than 7 days ago
+  await Token.deleteMany({
+    type: "refresh",
+    expiresAt: { $lte: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000) },
+  });
+  console.log("Tokens deleted successfully");
+});
+
 const app = express();
 const port = process.env.PORT;
 bootstrap(app, express);

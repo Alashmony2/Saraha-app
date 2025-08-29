@@ -287,6 +287,7 @@ export const login = async (req, res, next) => {
     token: refreshToken,
     user: userExist._id,
     type: "refresh",
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
   });
 
   return res.status(200).json({
