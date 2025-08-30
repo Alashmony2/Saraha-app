@@ -20,4 +20,5 @@ router.post(
   fileUploadCloud().single("profilePicture"),
   userService.uploadProfilePictureCloud
 );
+router.get("/",isAuthenticated,userService.getProfile)
 export default router;

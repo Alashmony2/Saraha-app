@@ -30,12 +30,22 @@ export const sendMessage = async (req, res, next) => {
 };
 export const getMessage = async (req, res, next) => {
   const { id } = req.params;
-  const message = await Message.findOne({_id:id,receiver:req.user._id},
+  const message = await Message.findOne(
+    { _id: id, receiver: req.user._id },
     {},
-    {populate:[{path:"receiver",select:"-password -credentialUpdatedAt -createdAt -updatedAt"}]}
+    {
+      populate: [
+        {
+          path: "receiver",
+          select: "-password -credentialUpdatedAt -createdAt -updatedAt",
+        },
+      ],
+    }
   );
   if (!message) {
     throw new Error("Message Not Found", { cause: 404 });
   }
-  return res.status(200).json({ message: "done", success: true, data: message });
+  return res
+    .status(200)
+    .json({ message: "done", success: true, data: message });
 };

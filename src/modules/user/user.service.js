@@ -51,9 +51,9 @@ export const uploadProfilePictureCloud = async (req, res, next) => {
     req.file.path,
     {
       folder: `saraha-app/users/${user._id}/profile-picture`,
-      width:300,
-      height:300,
-      crop:"fill"
+      width: 300,
+      height: 300,
+      crop: "fill",
     }
   );
 
@@ -66,4 +66,12 @@ export const uploadProfilePictureCloud = async (req, res, next) => {
     success: true,
     data: { secure_url, public_id },
   });
+};
+export const getProfile = async (req, res, next) => {
+  const user = await User.findOne(
+    { _id: req.user._id },
+    {},
+    { populate: [{ path: "messages" }] }
+  );
+  return res.status(200).json({ message: "done", success: true, data: {user} });
 };
