@@ -8,3 +8,7 @@ export const sendMessageSchema = joi
     sender: generalFields.objectId,
   })
   .required();
+
+export const getMessageSchema = joi.object({
+  id: generalFields.objectId.required(),
+});
